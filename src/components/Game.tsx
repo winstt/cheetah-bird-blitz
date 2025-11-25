@@ -21,6 +21,14 @@ interface Weed {
   collected: boolean;
 }
 
+interface FloatingText {
+  x: number;
+  y: number;
+  text: string;
+  opacity: number;
+  startTime: number;
+}
+
 export const Game = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -38,6 +46,7 @@ export const Game = () => {
     playerVelocity: 0,
     pipes: [] as Pipe[],
     weeds: [] as Weed[],
+    floatingTexts: [] as FloatingText[],
     frameCount: 0,
     rotation: 0,
   });
@@ -104,14 +113,15 @@ export const Game = () => {
       setGameStarted(true);
       setGameOver(false);
       setScore(0);
-      gameStateRef.current = {
-        playerY: 250,
-        playerVelocity: 0,
-        pipes: [],
-        weeds: [],
-        frameCount: 0,
-        rotation: 0,
-      };
+    gameStateRef.current = {
+      playerY: 250,
+      playerVelocity: 0,
+      pipes: [],
+      weeds: [],
+      floatingTexts: [],
+      frameCount: 0,
+      rotation: 0,
+    };
     } else if (!gameOver) {
       gameStateRef.current.playerVelocity = -5; // Bigger jump
     }
@@ -126,6 +136,7 @@ export const Game = () => {
       playerVelocity: 0,
       pipes: [],
       weeds: [],
+      floatingTexts: [],
       frameCount: 0,
       rotation: 0,
     };
@@ -145,7 +156,7 @@ export const Game = () => {
     const GRAVITY = 0.09;
     const PIPE_SPEED = 0.6;
     const PLAYER_X = CANVAS_WIDTH * 0.25;
-    const WEED_SIZE = 50;
+    const WEED_SIZE = 75;
 
     let animationFrameId: number;
 
@@ -160,8 +171,8 @@ export const Game = () => {
 
       // Progressive difficulty: start easier, get harder
       const difficultyFactor = Math.min(score / 20, 1); // Max difficulty at score 20
-      const PIPE_GAP = 380 - difficultyFactor * 100; // Start at 380, minimum 280
-      const PIPE_SPAWN_RATE = 400 - difficultyFactor * 100; // Start at 400, minimum 300
+      const PIPE_GAP = 400 - difficultyFactor * 100; // Start at 400, minimum 300
+      const PIPE_SPAWN_RATE = 500 - difficultyFactor * 100; // Start at 500, minimum 400
 
       // Update player physics
       state.playerVelocity += GRAVITY;
@@ -180,8 +191,8 @@ export const Game = () => {
           passed: false,
         });
 
-        // Spawn weed collectible occasionally (after score 3+)
-        if (score >= 3 && Math.random() < 0.3) {
+        // Spawn weed collectible occasionally
+        if (Math.random() < 0.3) {
           const weedY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
           state.weeds.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
@@ -212,6 +223,19 @@ export const Game = () => {
       // Update weeds
       state.weeds.forEach((weed) => {
         weed.x -= PIPE_SPEED;
+      });
+
+      // Update floating texts
+      const currentTime = Date.now();
+      state.floatingTexts = state.floatingTexts.filter((text) => {
+        const elapsed = currentTime - text.startTime;
+        const duration = 1000; // 1 second animation
+        if (elapsed < duration) {
+          text.y -= 0.5; // Move up
+          text.opacity = 1 - elapsed / duration; // Fade out
+          return true;
+        }
+        return false;
       });
 
       // Remove off-screen pipes and weeds
@@ -260,6 +284,14 @@ export const Game = () => {
             playerTop < weedBottom
           ) {
             weed.collected = true;
+            // Add floating text
+            state.floatingTexts.push({
+              x: PLAYER_X + PLAYER_SIZE + 10,
+              y: state.playerY + PLAYER_SIZE / 2,
+              text: "+67",
+              opacity: 1,
+              startTime: Date.now(),
+            });
             setScore((prev) => {
               const newScore = prev + 67;
               if (newScore > bestScore) {
@@ -283,17 +315,26 @@ export const Game = () => {
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       }
 
-      // Draw pipes using actual pipe image - rotated to face center
+      // Draw pipes using actual pipe image without stretching - "cut off" at desired length
       state.pipes.forEach((pipe) => {
         if (imagesRef.current.pipe) {
-          const centerY = CANVAS_HEIGHT / 2;
+          const pipeImg = imagesRef.current.pipe;
+          const pipeAspectRatio = pipeImg.width / pipeImg.height;
+          const renderedWidth = PIPE_WIDTH;
+          const renderedHeight = renderedWidth / pipeAspectRatio;
           
-          // Top pipe - rotated to face down and inward
+          // Top pipe - rotated to face down
           ctx.save();
           ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.topHeight);
           ctx.rotate(Math.PI); // Flip upside down
+          // Draw from bottom of desired height, letting the rest extend beyond
+          const topPipeSourceHeight = (pipe.topHeight / renderedWidth) * pipeImg.width;
           ctx.drawImage(
             imagesRef.current.pipe,
+            0,
+            Math.max(0, pipeImg.height - topPipeSourceHeight),
+            pipeImg.width,
+            Math.min(pipeImg.height, topPipeSourceHeight),
             -PIPE_WIDTH / 2,
             0,
             PIPE_WIDTH,
@@ -304,8 +345,13 @@ export const Game = () => {
           // Bottom pipe - normal orientation facing up
           const bottomPipeY = pipe.topHeight + pipe.gap;
           const bottomPipeHeight = CANVAS_HEIGHT - bottomPipeY;
+          const bottomPipeSourceHeight = (bottomPipeHeight / renderedWidth) * pipeImg.width;
           ctx.drawImage(
             imagesRef.current.pipe,
+            0,
+            0,
+            pipeImg.width,
+            Math.min(pipeImg.height, bottomPipeSourceHeight),
             pipe.x,
             bottomPipeY,
             PIPE_WIDTH,
@@ -342,6 +388,45 @@ export const Game = () => {
         ctx.restore();
       }
 
+      // Draw floating texts
+      state.floatingTexts.forEach((text) => {
+        ctx.save();
+        ctx.globalAlpha = text.opacity;
+        ctx.font = "bold 48px monospace";
+        ctx.fillStyle = "#84cc16";
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 3;
+        ctx.strokeText(text.text, text.x, text.y);
+        ctx.fillText(text.text, text.x, text.y);
+        ctx.restore();
+      });
+
+      // Draw scrolling text at bottom
+      const scrollSpeed = 2;
+      const scrollText = "YOLO 28.11.2026    ";
+      const textMetrics = ctx.measureText(scrollText);
+      const textWidth = textMetrics.width;
+      const scrollOffset = (state.frameCount * scrollSpeed) % textWidth;
+      
+      ctx.save();
+      ctx.font = "bold 32px monospace";
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      
+      // Create strobe effect
+      const strobeAlpha = 0.8 + Math.sin(state.frameCount * 0.1) * 0.2;
+      ctx.globalAlpha = strobeAlpha;
+      
+      // Draw text multiple times to fill the width
+      const repeats = Math.ceil(CANVAS_WIDTH / textWidth) + 2;
+      for (let i = -1; i < repeats; i++) {
+        ctx.fillText(scrollText, i * textWidth - scrollOffset, CANVAS_HEIGHT - 30);
+      }
+      ctx.restore();
+
       animationFrameId = requestAnimationFrame(gameLoop);
     };
 
@@ -369,7 +454,7 @@ export const Game = () => {
       {/* Mute Button - Top Left with Pixelated Graphics */}
       <button
         onClick={toggleMute}
-        className="absolute top-8 left-8 z-10 w-16 h-16 flex items-center justify-center hover:scale-110 transition-transform"
+        className="absolute top-8 left-8 z-10 w-[76px] h-[76px] flex items-center justify-center hover:scale-110 transition-transform"
         style={{ imageRendering: 'pixelated' }}
       >
         <img 
@@ -399,7 +484,10 @@ export const Game = () => {
 
       {/* Start Screen Overlay */}
       {!gameStarted && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div 
+          className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
+          onClick={jump}
+        >
           <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]">
             YOLO BIRD
           </h1>
