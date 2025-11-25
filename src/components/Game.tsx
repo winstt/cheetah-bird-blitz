@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX } from "lucide-react";
 import yoloPlayerImg from "@/assets/yolo-player.png";
 import cheetahPipeImg from "@/assets/cheetah-pipe.png";
 import backgroundImg from "@/assets/background.jpg";
 import gameMusic from "@/assets/game-music.mp3";
+import audioOnImg from "@/assets/audio-on.png";
+import audioOffImg from "@/assets/audio-off.png";
+import weedCollectibleImg from "@/assets/weed-collectible.png";
 
 interface Pipe {
   x: number;
   topHeight: number;
   gap: number;
   passed: boolean;
+}
+
+interface Weed {
+  x: number;
+  y: number;
+  collected: boolean;
 }
 
 export const Game = () => {
@@ -29,6 +37,7 @@ export const Game = () => {
     playerY: 250,
     playerVelocity: 0,
     pipes: [] as Pipe[],
+    weeds: [] as Weed[],
     frameCount: 0,
     rotation: 0,
   });
@@ -37,6 +46,9 @@ export const Game = () => {
     player: null as HTMLImageElement | null,
     pipe: null as HTMLImageElement | null,
     background: null as HTMLImageElement | null,
+    weed: null as HTMLImageElement | null,
+    audioOn: null as HTMLImageElement | null,
+    audioOff: null as HTMLImageElement | null,
   });
 
   // Load images and setup audio
@@ -52,6 +64,18 @@ export const Game = () => {
     const bgImage = new Image();
     bgImage.src = backgroundImg;
     imagesRef.current.background = bgImage;
+
+    const weedImage = new Image();
+    weedImage.src = weedCollectibleImg;
+    imagesRef.current.weed = weedImage;
+
+    const audioOnImage = new Image();
+    audioOnImage.src = audioOnImg;
+    imagesRef.current.audioOn = audioOnImage;
+
+    const audioOffImage = new Image();
+    audioOffImage.src = audioOffImg;
+    imagesRef.current.audioOff = audioOffImage;
 
     // Setup audio
     if (audioRef.current) {
@@ -84,6 +108,7 @@ export const Game = () => {
         playerY: 250,
         playerVelocity: 0,
         pipes: [],
+        weeds: [],
         frameCount: 0,
         rotation: 0,
       };
@@ -100,6 +125,7 @@ export const Game = () => {
       playerY: 250,
       playerVelocity: 0,
       pipes: [],
+      weeds: [],
       frameCount: 0,
       rotation: 0,
     };
@@ -116,10 +142,10 @@ export const Game = () => {
     const CANVAS_HEIGHT = window.innerHeight;
     const PLAYER_SIZE = 70;
     const PIPE_WIDTH = 120;
-    const PIPE_GAP = 280;
-    const GRAVITY = 0.09; // Slowed by half
-    const PIPE_SPEED = 0.6; // Slowed by half
-    const PLAYER_X = CANVAS_WIDTH * 0.25; // Position on left quarter
+    const GRAVITY = 0.09;
+    const PIPE_SPEED = 0.6;
+    const PLAYER_X = CANVAS_WIDTH * 0.25;
+    const WEED_SIZE = 50;
 
     let animationFrameId: number;
 
@@ -132,6 +158,11 @@ export const Game = () => {
       const state = gameStateRef.current;
       state.frameCount++;
 
+      // Progressive difficulty: start easier, get harder
+      const difficultyFactor = Math.min(score / 20, 1); // Max difficulty at score 20
+      const PIPE_GAP = 380 - difficultyFactor * 100; // Start at 380, minimum 280
+      const PIPE_SPAWN_RATE = 400 - difficultyFactor * 100; // Start at 400, minimum 300
+
       // Update player physics
       state.playerVelocity += GRAVITY;
       state.playerY += state.playerVelocity;
@@ -139,8 +170,8 @@ export const Game = () => {
       // Update rotation based on velocity
       state.rotation = Math.min(Math.max(state.playerVelocity * 5, -25), 90);
 
-      // Add new pipes (much more spacing between pipes)
-      if (state.frameCount % 300 === 0) {
+      // Add new pipes with progressive difficulty
+      if (state.frameCount % PIPE_SPAWN_RATE === 0) {
         const topHeight = Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 200) + 100;
         state.pipes.push({
           x: CANVAS_WIDTH,
@@ -148,6 +179,16 @@ export const Game = () => {
           gap: PIPE_GAP,
           passed: false,
         });
+
+        // Spawn weed collectible occasionally (after score 3+)
+        if (score >= 3 && Math.random() < 0.3) {
+          const weedY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
+          state.weeds.push({
+            x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
+            y: weedY,
+            collected: false,
+          });
+        }
       }
 
       // Update pipes
@@ -168,11 +209,17 @@ export const Game = () => {
         }
       });
 
-      // Remove off-screen pipes
-      state.pipes = state.pipes.filter((pipe) => pipe.x > -PIPE_WIDTH);
+      // Update weeds
+      state.weeds.forEach((weed) => {
+        weed.x -= PIPE_SPEED;
+      });
 
-      // Check collisions with improved hitbox (smaller, more forgiving)
-      const hitboxMargin = 8; // Reduce effective collision area
+      // Remove off-screen pipes and weeds
+      state.pipes = state.pipes.filter((pipe) => pipe.x > -PIPE_WIDTH);
+      state.weeds = state.weeds.filter((weed) => weed.x > -WEED_SIZE);
+
+      // Check collisions with improved hitbox (more forgiving)
+      const hitboxMargin = 12; // More forgiving collision
       const playerLeft = PLAYER_X + hitboxMargin;
       const playerRight = PLAYER_X + PLAYER_SIZE - hitboxMargin;
       const playerTop = state.playerY + hitboxMargin;
@@ -185,12 +232,43 @@ export const Game = () => {
 
       // Pipe collision with improved hitbox
       state.pipes.forEach((pipe) => {
+        // More forgiving pipe collision - only check the inner part of pipes
+        const pipeLeftEdge = pipe.x + 20; // Ignore outer edges
+        const pipeRightEdge = pipe.x + PIPE_WIDTH - 20;
+        
         if (
-          playerRight > pipe.x &&
-          playerLeft < pipe.x + PIPE_WIDTH &&
+          playerRight > pipeLeftEdge &&
+          playerLeft < pipeRightEdge &&
           (playerTop < pipe.topHeight || playerBottom > pipe.topHeight + pipe.gap)
         ) {
           setGameOver(true);
+        }
+      });
+
+      // Weed collection
+      state.weeds.forEach((weed) => {
+        if (!weed.collected) {
+          const weedLeft = weed.x;
+          const weedRight = weed.x + WEED_SIZE;
+          const weedTop = weed.y;
+          const weedBottom = weed.y + WEED_SIZE;
+
+          if (
+            playerRight > weedLeft &&
+            playerLeft < weedRight &&
+            playerBottom > weedTop &&
+            playerTop < weedBottom
+          ) {
+            weed.collected = true;
+            setScore((prev) => {
+              const newScore = prev + 67;
+              if (newScore > bestScore) {
+                setBestScore(newScore);
+                localStorage.setItem("bestScore", newScore.toString());
+              }
+              return newScore;
+            });
+          }
         }
       });
 
@@ -205,23 +283,25 @@ export const Game = () => {
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       }
 
-      // Draw pipes using actual pipe image stretched
+      // Draw pipes using actual pipe image - rotated to face center
       state.pipes.forEach((pipe) => {
         if (imagesRef.current.pipe) {
-          // Top pipe - draw image stretched and flipped
+          const centerY = CANVAS_HEIGHT / 2;
+          
+          // Top pipe - rotated to face down and inward
           ctx.save();
-          ctx.translate(pipe.x + PIPE_WIDTH, 0);
-          ctx.scale(-1, 1);
+          ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.topHeight);
+          ctx.rotate(Math.PI); // Flip upside down
           ctx.drawImage(
             imagesRef.current.pipe,
-            0,
+            -PIPE_WIDTH / 2,
             0,
             PIPE_WIDTH,
             pipe.topHeight
           );
           ctx.restore();
 
-          // Bottom pipe - draw image stretched
+          // Bottom pipe - normal orientation facing up
           const bottomPipeY = pipe.topHeight + pipe.gap;
           const bottomPipeHeight = CANVAS_HEIGHT - bottomPipeY;
           ctx.drawImage(
@@ -230,6 +310,19 @@ export const Game = () => {
             bottomPipeY,
             PIPE_WIDTH,
             bottomPipeHeight
+          );
+        }
+      });
+
+      // Draw weeds
+      state.weeds.forEach((weed) => {
+        if (!weed.collected && imagesRef.current.weed) {
+          ctx.drawImage(
+            imagesRef.current.weed,
+            weed.x,
+            weed.y,
+            WEED_SIZE,
+            WEED_SIZE
           );
         }
       });
@@ -273,17 +366,18 @@ export const Game = () => {
       {/* Audio element */}
       <audio ref={audioRef} src={gameMusic} />
       
-      {/* Mute Button - Top Left */}
+      {/* Mute Button - Top Left with Pixelated Graphics */}
       <button
         onClick={toggleMute}
-        className="absolute top-8 left-8 z-10 w-12 h-12 flex items-center justify-center bg-black/50 border-2 border-white hover:bg-black/70 transition-colors"
+        className="absolute top-8 left-8 z-10 w-16 h-16 flex items-center justify-center hover:scale-110 transition-transform"
         style={{ imageRendering: 'pixelated' }}
       >
-        {isMuted ? (
-          <VolumeX className="w-6 h-6 text-white" strokeWidth={3} />
-        ) : (
-          <Volume2 className="w-6 h-6 text-white" strokeWidth={3} />
-        )}
+        <img 
+          src={isMuted ? audioOffImg : audioOnImg} 
+          alt={isMuted ? "Audio Off" : "Audio On"}
+          className="w-full h-full"
+          style={{ imageRendering: 'pixelated' }}
+        />
       </button>
 
       {/* Score Display at Top Right - Only during gameplay */}
