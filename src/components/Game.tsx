@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import yoloPlayerImg from "@/assets/yolo-player.png";
 import cheetahPipeImg from "@/assets/cheetah-pipe.png";
+import cheetahTopPipeImg from "@/assets/cheetah-top-pipe.png";
 import backgroundImg from "@/assets/background.jpg";
 import gameMusic from "@/assets/game-music.mp3";
 import audioOnImg from "@/assets/audio-on.png";
@@ -65,6 +66,7 @@ export const Game = () => {
   const imagesRef = useRef({
     player: null as HTMLImageElement | null,
     pipe: null as HTMLImageElement | null,
+    topPipe: null as HTMLImageElement | null,
     background: null as HTMLImageElement | null,
     weed: null as HTMLImageElement | null,
     durex: null as HTMLImageElement | null,
@@ -81,6 +83,10 @@ export const Game = () => {
     const pipeImage = new Image();
     pipeImage.src = cheetahPipeImg;
     imagesRef.current.pipe = pipeImage;
+
+    const topPipeImage = new Image();
+    topPipeImage.src = cheetahTopPipeImg;
+    imagesRef.current.topPipe = topPipeImage;
 
     const bgImage = new Image();
     bgImage.src = backgroundImg;
@@ -213,16 +219,16 @@ export const Game = () => {
           passed: false,
         });
 
-        // Spawn weed or durex collectible commonly
+        // Spawn weed or durex collectible at 60% rate
         const rand = Math.random();
-        if (rand < 0.5) {
+        if (rand < 0.4) {
           const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
           state.weeds.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
             y: collectibleY,
             collected: false,
           });
-        } else if (rand < 0.8) {
+        } else if (rand < 0.6) {
           const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
           state.durexes.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
@@ -388,24 +394,25 @@ export const Game = () => {
 
       // Draw pipes using actual pipe image without stretching - "cut off" at desired length
       state.pipes.forEach((pipe) => {
-        if (imagesRef.current.pipe) {
+        if (imagesRef.current.topPipe && imagesRef.current.pipe) {
+          const topPipeImg = imagesRef.current.topPipe;
           const pipeImg = imagesRef.current.pipe;
           const pipeAspectRatio = pipeImg.width / pipeImg.height;
           const renderedWidth = PIPE_WIDTH;
           const renderedHeight = renderedWidth / pipeAspectRatio;
           
-          // Top pipe - rotated 180 degrees so opening faces downward
+          // Top pipe - rotated 180 degrees so opening faces downward using separate image
           ctx.save();
           ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.topHeight);
           ctx.rotate(Math.PI); // Rotate 180 degrees
           // Draw from bottom of desired height, letting the rest extend beyond
-          const topPipeSourceHeight = (pipe.topHeight / renderedWidth) * pipeImg.width;
+          const topPipeSourceHeight = (pipe.topHeight / renderedWidth) * topPipeImg.width;
           ctx.drawImage(
-            imagesRef.current.pipe,
+            topPipeImg,
             0,
-            Math.max(0, pipeImg.height - topPipeSourceHeight),
-            pipeImg.width,
-            Math.min(pipeImg.height, topPipeSourceHeight),
+            Math.max(0, topPipeImg.height - topPipeSourceHeight),
+            topPipeImg.width,
+            Math.min(topPipeImg.height, topPipeSourceHeight),
             -PIPE_WIDTH / 2,
             0,
             PIPE_WIDTH,
@@ -477,20 +484,20 @@ export const Game = () => {
       state.floatingTexts.forEach((text) => {
         ctx.save();
         ctx.globalAlpha = text.opacity;
-        ctx.font = "bold 48px 'VT323', monospace";
+        ctx.font = "bold 120px 'VT323', monospace";
         const isPositive = text.text.startsWith("+");
         ctx.fillStyle = isPositive ? "#84cc16" : "#ef4444";
         ctx.strokeStyle = "#000";
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 8;
         ctx.strokeText(text.text, text.x, text.y);
         ctx.fillText(text.text, text.x, text.y);
         ctx.restore();
       });
 
       // Draw scrolling text at bottom
-      const scrollSpeed = 1.0; // 100% faster
+      const scrollSpeed = 2.0; // Twice as fast
       const scrollText = "YOLO 28.11.2026        "; // More spacing
-      ctx.font = "bold 32px 'VT323', monospace"; // Set font before measuring
+      ctx.font = "bold 80px 'VT323', monospace"; // Set font before measuring - 250% bigger
       const textMetrics = ctx.measureText(scrollText);
       const textWidth = textMetrics.width;
       const scrollOffset = (state.frameCount * scrollSpeed) % textWidth;
@@ -502,14 +509,14 @@ export const Game = () => {
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
       
-      // Create strobe effect
-      const strobeAlpha = 0.8 + Math.sin(state.frameCount * 0.05) * 0.2;
+      // Create drastic strobe effect
+      const strobeAlpha = 0.4 + Math.sin(state.frameCount * 0.2) * 0.6;
       ctx.globalAlpha = strobeAlpha;
       
       // Draw text multiple times to fill the width
       const repeats = Math.ceil(CANVAS_WIDTH / textWidth) + 1;
       for (let i = 0; i < repeats; i++) {
-        ctx.fillText(scrollText, i * textWidth - scrollOffset, CANVAS_HEIGHT - 30);
+        ctx.fillText(scrollText, i * textWidth - scrollOffset, CANVAS_HEIGHT - 70);
       }
       ctx.restore();
 
@@ -567,26 +574,26 @@ export const Game = () => {
 
       {/* Collectible Counters - Top Left under audio button */}
       {gameStarted && !gameOver && (
-        <div className="absolute top-32 left-8 z-10 flex flex-col gap-3">
-          <div className="flex items-center gap-3">
+        <div className="absolute top-32 left-8 z-10 flex flex-col gap-6">
+          <div className="flex items-center gap-6">
             <img 
               src={weedCollectibleImg} 
               alt="Weed" 
-              className="w-12 h-12"
+              className="w-[120px] h-[120px]"
               style={{ imageRendering: 'pixelated' }}
             />
-            <p className="text-4xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>
+            <p className="text-[100px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>
               {weedCount}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
             <img 
               src={durexCollectibleImg} 
               alt="Durex" 
-              className="w-12 h-12"
+              className="w-[120px] h-[120px]"
               style={{ imageRendering: 'pixelated' }}
             />
-            <p className="text-4xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>
+            <p className="text-[100px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>
               {durexCount}
             </p>
           </div>
@@ -596,7 +603,7 @@ export const Game = () => {
       {/* Score Display at Top Right - Only during gameplay */}
       {gameStarted && !gameOver && (
         <div className="absolute top-8 right-8 z-10">
-          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>{score}</p>
+          <p className="text-[150px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>{score}</p>
         </div>
       )}
 
@@ -616,20 +623,20 @@ export const Game = () => {
           className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
           onClick={jump}
         >
-          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]" style={{ fontFamily: "'VT323', monospace" }}>
+          <h1 className="text-[150px] font-bold mb-8 text-accent drop-shadow-[0_0_20px_rgba(132,204,22,0.7)]" style={{ fontFamily: "'VT323', monospace" }}>
             YOLO BIRD
           </h1>
-          <p className="text-xl mb-4 text-white" style={{ fontFamily: "'VT323', monospace" }}>TAP OR PRESS SPACE</p>
-          <p className="text-sm text-muted-foreground" style={{ fontFamily: "'VT323', monospace" }}>TO START</p>
+          <p className="text-[52px] mb-4 text-white" style={{ fontFamily: "'VT323', monospace" }}>TAP OR PRESS SPACE</p>
+          <p className="text-[33px] text-muted-foreground" style={{ fontFamily: "'VT323', monospace" }}>TO START</p>
         </div>
       )}
 
       {/* Game Over Overlay */}
       {gameOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-          <h2 className="text-5xl font-bold mb-6 text-white" style={{ fontFamily: "'VT323', monospace" }}>GAME OVER</h2>
-          <p className="text-2xl mb-2 text-white" style={{ fontFamily: "'VT323', monospace" }}>SCORE: {score}</p>
-          <p className="text-xl text-accent mb-8" style={{ fontFamily: "'VT323', monospace" }}>BEST: {bestScore}</p>
+          <h2 className="text-[125px] font-bold mb-6 text-white" style={{ fontFamily: "'VT323', monospace" }}>GAME OVER</h2>
+          <p className="text-[60px] mb-2 text-white" style={{ fontFamily: "'VT323', monospace" }}>SCORE: {score}</p>
+          <p className="text-[52px] text-accent mb-8" style={{ fontFamily: "'VT323', monospace" }}>BEST: {bestScore}</p>
           <Button 
             onClick={resetGame} 
             className="bg-accent text-black hover:bg-accent/90 text-lg px-8 py-6 font-bold"
