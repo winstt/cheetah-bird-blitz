@@ -99,17 +99,20 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'Press Start 2P', 'Courier New', monospace;
+  * {
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
   }
 
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    margin: 0;
+    overflow: hidden;
+  }
+
   canvas {
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
+    display: block;
   }
 }
