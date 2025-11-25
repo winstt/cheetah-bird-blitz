@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Volume2, VolumeX } from "lucide-react";
 import yoloPlayerImg from "@/assets/yolo-player.png";
 import cheetahPipeImg from "@/assets/cheetah-pipe.png";
 import backgroundImg from "@/assets/background.jpg";
+import gameMusic from "@/assets/game-music.mp3";
 
 interface Pipe {
   x: number;
@@ -20,6 +22,8 @@ export const Game = () => {
     const saved = localStorage.getItem("bestScore");
     return saved ? parseInt(saved) : 0;
   });
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const gameStateRef = useRef({
     playerY: 250,
@@ -35,7 +39,7 @@ export const Game = () => {
     background: null as HTMLImageElement | null,
   });
 
-  // Load images
+  // Load images and setup audio
   useEffect(() => {
     const playerImage = new Image();
     playerImage.src = yoloPlayerImg;
@@ -48,7 +52,28 @@ export const Game = () => {
     const bgImage = new Image();
     bgImage.src = backgroundImg;
     imagesRef.current.background = bgImage;
+
+    // Setup audio
+    if (audioRef.current) {
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.3;
+    }
   }, []);
+
+  // Handle audio play/pause
+  useEffect(() => {
+    if (audioRef.current) {
+      if (gameStarted && !gameOver && !isMuted) {
+        audioRef.current.play().catch(() => {});
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [gameStarted, gameOver, isMuted]);
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
 
   const jump = useCallback(() => {
     if (!gameStarted) {
@@ -90,10 +115,10 @@ export const Game = () => {
     const CANVAS_WIDTH = window.innerWidth;
     const CANVAS_HEIGHT = window.innerHeight;
     const PLAYER_SIZE = 70;
-    const PIPE_WIDTH = 80;
-    const PIPE_GAP = 250;
-    const GRAVITY = 0.18; // Even slower, smoother gravity
-    const PIPE_SPEED = 1.2; // Even slower pipe movement
+    const PIPE_WIDTH = 120;
+    const PIPE_GAP = 280;
+    const GRAVITY = 0.09; // Slowed by half
+    const PIPE_SPEED = 0.6; // Slowed by half
     const PLAYER_X = CANVAS_WIDTH * 0.25; // Position on left quarter
 
     let animationFrameId: number;
@@ -114,8 +139,8 @@ export const Game = () => {
       // Update rotation based on velocity
       state.rotation = Math.min(Math.max(state.playerVelocity * 5, -25), 90);
 
-      // Add new pipes (more spacing between pipes)
-      if (state.frameCount % 200 === 0) {
+      // Add new pipes (much more spacing between pipes)
+      if (state.frameCount % 300 === 0) {
         const topHeight = Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 200) + 100;
         state.pipes.push({
           x: CANVAS_WIDTH,
@@ -180,30 +205,32 @@ export const Game = () => {
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       }
 
-      // Draw pipes with cheetah texture
+      // Draw pipes using actual pipe image stretched
       state.pipes.forEach((pipe) => {
         if (imagesRef.current.pipe) {
-          // Top pipe
-          const topPipeHeight = pipe.topHeight;
-          const pattern = ctx.createPattern(imagesRef.current.pipe, "repeat");
-          if (pattern) {
-            ctx.fillStyle = pattern;
-            ctx.fillRect(pipe.x, 0, PIPE_WIDTH, topPipeHeight);
-          }
+          // Top pipe - draw image stretched and flipped
+          ctx.save();
+          ctx.translate(pipe.x + PIPE_WIDTH, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(
+            imagesRef.current.pipe,
+            0,
+            0,
+            PIPE_WIDTH,
+            pipe.topHeight
+          );
+          ctx.restore();
 
-          // Bottom pipe
+          // Bottom pipe - draw image stretched
           const bottomPipeY = pipe.topHeight + pipe.gap;
           const bottomPipeHeight = CANVAS_HEIGHT - bottomPipeY;
-          if (pattern) {
-            ctx.fillStyle = pattern;
-            ctx.fillRect(pipe.x, bottomPipeY, PIPE_WIDTH, bottomPipeHeight);
-          }
-
-          // Pipe borders
-          ctx.strokeStyle = "#000";
-          ctx.lineWidth = 3;
-          ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, topPipeHeight);
-          ctx.strokeRect(pipe.x, bottomPipeY, PIPE_WIDTH, bottomPipeHeight);
+          ctx.drawImage(
+            imagesRef.current.pipe,
+            pipe.x,
+            bottomPipeY,
+            PIPE_WIDTH,
+            bottomPipeHeight
+          );
         }
       });
 
@@ -243,6 +270,22 @@ export const Game = () => {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
+      {/* Audio element */}
+      <audio ref={audioRef} src={gameMusic} />
+      
+      {/* Mute Button - Top Left */}
+      <button
+        onClick={toggleMute}
+        className="absolute top-8 left-8 z-10 w-12 h-12 flex items-center justify-center bg-black/50 border-2 border-white hover:bg-black/70 transition-colors"
+        style={{ imageRendering: 'pixelated' }}
+      >
+        {isMuted ? (
+          <VolumeX className="w-6 h-6 text-white" strokeWidth={3} />
+        ) : (
+          <Volume2 className="w-6 h-6 text-white" strokeWidth={3} />
+        )}
+      </button>
+
       {/* Score Display at Top Right - Only during gameplay */}
       {gameStarted && !gameOver && (
         <div className="absolute top-8 right-8 z-10">
