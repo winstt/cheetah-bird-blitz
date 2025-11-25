@@ -46,6 +46,9 @@ export const Game = () => {
     return saved ? parseInt(saved) : 0;
   });
   const [isMuted, setIsMuted] = useState(false);
+  const [weedCount, setWeedCount] = useState(0);
+  const [durexCount, setDurexCount] = useState(0);
+  const [hueShift, setHueShift] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const gameStateRef = useRef({
@@ -126,6 +129,8 @@ export const Game = () => {
       setGameStarted(true);
       setGameOver(false);
       setScore(0);
+      setWeedCount(0);
+      setDurexCount(0);
     gameStateRef.current = {
       playerY: 250,
       playerVelocity: 0,
@@ -145,6 +150,8 @@ export const Game = () => {
     setGameStarted(false);
     setGameOver(false);
     setScore(0);
+    setWeedCount(0);
+    setDurexCount(0);
     gameStateRef.current = {
       playerY: 250,
       playerVelocity: 0,
@@ -313,6 +320,7 @@ export const Game = () => {
             playerTop < weedBottom
           ) {
             weed.collected = true;
+            setWeedCount(prev => prev + 1);
             // Add floating text
             state.floatingTexts.push({
               x: PLAYER_X + PLAYER_SIZE + 10,
@@ -326,6 +334,11 @@ export const Game = () => {
               if (newScore > bestScore) {
                 setBestScore(newScore);
                 localStorage.setItem("bestScore", newScore.toString());
+              }
+              // Trigger hue shift at 300 points
+              if (newScore >= 300 && prev < 300) {
+                setHueShift(true);
+                setTimeout(() => setHueShift(false), 10000);
               }
               return newScore;
             });
@@ -348,6 +361,7 @@ export const Game = () => {
             playerTop < durexBottom
           ) {
             durex.collected = true;
+            setDurexCount(prev => prev + 1);
             // Add floating text
             state.floatingTexts.push({
               x: PLAYER_X + PLAYER_SIZE + 10,
@@ -356,7 +370,7 @@ export const Game = () => {
               opacity: 1,
               startTime: Date.now(),
             });
-            setScore((prev) => Math.max(0, prev - 67)); // Don't go below 0
+            setScore((prev) => prev - 67); // Allow negative scores
           }
         }
       });
@@ -380,11 +394,10 @@ export const Game = () => {
           const renderedWidth = PIPE_WIDTH;
           const renderedHeight = renderedWidth / pipeAspectRatio;
           
-          // Top pipe - rotated and flipped to face down with opening toward center
+          // Top pipe - rotated 180 degrees so opening faces downward
           ctx.save();
           ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.topHeight);
-          ctx.rotate(Math.PI); // Flip upside down
-          ctx.scale(-1, 1); // Flip horizontally so opening faces center
+          ctx.rotate(Math.PI); // Rotate 180 degrees
           // Draw from bottom of desired height, letting the rest extend beyond
           const topPipeSourceHeight = (pipe.topHeight / renderedWidth) * pipeImg.width;
           ctx.drawImage(
@@ -464,7 +477,7 @@ export const Game = () => {
       state.floatingTexts.forEach((text) => {
         ctx.save();
         ctx.globalAlpha = text.opacity;
-        ctx.font = "bold 48px monospace";
+        ctx.font = "bold 48px 'VT323', monospace";
         const isPositive = text.text.startsWith("+");
         ctx.fillStyle = isPositive ? "#84cc16" : "#ef4444";
         ctx.strokeStyle = "#000";
@@ -475,9 +488,9 @@ export const Game = () => {
       });
 
       // Draw scrolling text at bottom
-      const scrollSpeed = 0.5; // Much slower
+      const scrollSpeed = 1.0; // 100% faster
       const scrollText = "YOLO 28.11.2026        "; // More spacing
-      ctx.font = "bold 32px monospace"; // Set font before measuring
+      ctx.font = "bold 32px 'VT323', monospace"; // Set font before measuring
       const textMetrics = ctx.measureText(scrollText);
       const textWidth = textMetrics.width;
       const scrollOffset = (state.frameCount * scrollSpeed) % textWidth;
@@ -520,7 +533,21 @@ export const Game = () => {
   }, [gameStarted, gameOver, jump, bestScore]);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-background">
+    <div 
+      className="fixed inset-0 overflow-hidden bg-background transition-all duration-1000"
+      style={hueShift ? {
+        animation: 'hue-rotate 10s linear',
+        filter: `hue-rotate(${Date.now() % 360}deg)`
+      } : {}}
+    >
+      <style>
+        {`
+          @keyframes hue-rotate {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+          }
+        `}
+      </style>
       {/* Audio element */}
       <audio ref={audioRef} src={gameMusic} />
       
@@ -538,10 +565,38 @@ export const Game = () => {
         />
       </button>
 
+      {/* Collectible Counters - Top Left under audio button */}
+      {gameStarted && !gameOver && (
+        <div className="absolute top-32 left-8 z-10 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <img 
+              src={weedCollectibleImg} 
+              alt="Weed" 
+              className="w-12 h-12"
+              style={{ imageRendering: 'pixelated' }}
+            />
+            <p className="text-4xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>
+              {weedCount}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src={durexCollectibleImg} 
+              alt="Durex" 
+              className="w-12 h-12"
+              style={{ imageRendering: 'pixelated' }}
+            />
+            <p className="text-4xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>
+              {durexCount}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Score Display at Top Right - Only during gameplay */}
       {gameStarted && !gameOver && (
         <div className="absolute top-8 right-8 z-10">
-          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>{score}</p>
+          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace" }}>{score}</p>
         </div>
       )}
 
@@ -561,20 +616,20 @@ export const Game = () => {
           className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
           onClick={jump}
         >
-          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>
+          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]" style={{ fontFamily: "'VT323', monospace" }}>
             YOLO BIRD
           </h1>
-          <p className="text-xl mb-4 text-white" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>TAP OR PRESS SPACE</p>
-          <p className="text-sm text-muted-foreground" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>TO START</p>
+          <p className="text-xl mb-4 text-white" style={{ fontFamily: "'VT323', monospace" }}>TAP OR PRESS SPACE</p>
+          <p className="text-sm text-muted-foreground" style={{ fontFamily: "'VT323', monospace" }}>TO START</p>
         </div>
       )}
 
       {/* Game Over Overlay */}
       {gameOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-          <h2 className="text-5xl font-bold mb-6 text-white" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>GAME OVER</h2>
-          <p className="text-2xl mb-2 text-white" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>SCORE: {score}</p>
-          <p className="text-xl text-accent mb-8" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>BEST: {bestScore}</p>
+          <h2 className="text-5xl font-bold mb-6 text-white" style={{ fontFamily: "'VT323', monospace" }}>GAME OVER</h2>
+          <p className="text-2xl mb-2 text-white" style={{ fontFamily: "'VT323', monospace" }}>SCORE: {score}</p>
+          <p className="text-xl text-accent mb-8" style={{ fontFamily: "'VT323', monospace" }}>BEST: {bestScore}</p>
           <Button 
             onClick={resetGame} 
             className="bg-accent text-black hover:bg-accent/90 text-lg px-8 py-6 font-bold"
