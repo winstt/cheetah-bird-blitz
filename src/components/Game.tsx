@@ -206,16 +206,16 @@ export const Game = () => {
           passed: false,
         });
 
-        // Spawn weed or durex collectible occasionally
+        // Spawn weed or durex collectible commonly
         const rand = Math.random();
-        if (rand < 0.3) {
+        if (rand < 0.5) {
           const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
           state.weeds.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
             y: collectibleY,
             collected: false,
           });
-        } else if (rand < 0.5) {
+        } else if (rand < 0.8) {
           const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
           state.durexes.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
@@ -380,10 +380,11 @@ export const Game = () => {
           const renderedWidth = PIPE_WIDTH;
           const renderedHeight = renderedWidth / pipeAspectRatio;
           
-          // Top pipe - rotated to face down
+          // Top pipe - rotated and flipped to face down with opening toward center
           ctx.save();
           ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.topHeight);
           ctx.rotate(Math.PI); // Flip upside down
+          ctx.scale(-1, 1); // Flip horizontally so opening faces center
           // Draw from bottom of desired height, letting the rest extend beyond
           const topPipeSourceHeight = (pipe.topHeight / renderedWidth) * pipeImg.width;
           ctx.drawImage(
@@ -540,7 +541,7 @@ export const Game = () => {
       {/* Score Display at Top Right - Only during gameplay */}
       {gameStarted && !gameOver && (
         <div className="absolute top-8 right-8 z-10">
-          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: 'monospace' }}>{score}</p>
+          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>{score}</p>
         </div>
       )}
 
@@ -560,20 +561,20 @@ export const Game = () => {
           className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
           onClick={jump}
         >
-          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]" style={{ fontFamily: 'monospace' }}>
+          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>
             YOLO BIRD
           </h1>
-          <p className="text-xl mb-4 text-white" style={{ fontFamily: 'monospace' }}>TAP OR PRESS SPACE</p>
-          <p className="text-sm text-muted-foreground" style={{ fontFamily: 'monospace' }}>TO START</p>
+          <p className="text-xl mb-4 text-white" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>TAP OR PRESS SPACE</p>
+          <p className="text-sm text-muted-foreground" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>TO START</p>
         </div>
       )}
 
       {/* Game Over Overlay */}
       {gameOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-          <h2 className="text-5xl font-bold mb-6 text-white" style={{ fontFamily: 'monospace' }}>GAME OVER</h2>
-          <p className="text-2xl mb-2 text-white" style={{ fontFamily: 'monospace' }}>SCORE: {score}</p>
-          <p className="text-xl text-accent mb-8" style={{ fontFamily: 'monospace' }}>BEST: {bestScore}</p>
+          <h2 className="text-5xl font-bold mb-6 text-white" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>GAME OVER</h2>
+          <p className="text-2xl mb-2 text-white" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>SCORE: {score}</p>
+          <p className="text-xl text-accent mb-8" style={{ fontFamily: 'monospace', imageRendering: 'pixelated' }}>BEST: {bestScore}</p>
           <Button 
             onClick={resetGame} 
             className="bg-accent text-black hover:bg-accent/90 text-lg px-8 py-6 font-bold"
