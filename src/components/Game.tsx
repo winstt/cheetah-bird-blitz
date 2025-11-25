@@ -7,6 +7,7 @@ import gameMusic from "@/assets/game-music.mp3";
 import audioOnImg from "@/assets/audio-on.png";
 import audioOffImg from "@/assets/audio-off.png";
 import weedCollectibleImg from "@/assets/weed-collectible.png";
+import durexCollectibleImg from "@/assets/durex-collectible.png";
 
 interface Pipe {
   x: number;
@@ -16,6 +17,12 @@ interface Pipe {
 }
 
 interface Weed {
+  x: number;
+  y: number;
+  collected: boolean;
+}
+
+interface Durex {
   x: number;
   y: number;
   collected: boolean;
@@ -46,6 +53,7 @@ export const Game = () => {
     playerVelocity: 0,
     pipes: [] as Pipe[],
     weeds: [] as Weed[],
+    durexes: [] as Durex[],
     floatingTexts: [] as FloatingText[],
     frameCount: 0,
     rotation: 0,
@@ -56,6 +64,7 @@ export const Game = () => {
     pipe: null as HTMLImageElement | null,
     background: null as HTMLImageElement | null,
     weed: null as HTMLImageElement | null,
+    durex: null as HTMLImageElement | null,
     audioOn: null as HTMLImageElement | null,
     audioOff: null as HTMLImageElement | null,
   });
@@ -77,6 +86,10 @@ export const Game = () => {
     const weedImage = new Image();
     weedImage.src = weedCollectibleImg;
     imagesRef.current.weed = weedImage;
+
+    const durexImage = new Image();
+    durexImage.src = durexCollectibleImg;
+    imagesRef.current.durex = durexImage;
 
     const audioOnImage = new Image();
     audioOnImage.src = audioOnImg;
@@ -118,6 +131,7 @@ export const Game = () => {
       playerVelocity: 0,
       pipes: [],
       weeds: [],
+      durexes: [],
       floatingTexts: [],
       frameCount: 0,
       rotation: 0,
@@ -136,6 +150,7 @@ export const Game = () => {
       playerVelocity: 0,
       pipes: [],
       weeds: [],
+      durexes: [],
       floatingTexts: [],
       frameCount: 0,
       rotation: 0,
@@ -191,12 +206,20 @@ export const Game = () => {
           passed: false,
         });
 
-        // Spawn weed collectible occasionally
-        if (Math.random() < 0.3) {
-          const weedY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
+        // Spawn weed or durex collectible occasionally
+        const rand = Math.random();
+        if (rand < 0.3) {
+          const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
           state.weeds.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
-            y: weedY,
+            y: collectibleY,
+            collected: false,
+          });
+        } else if (rand < 0.5) {
+          const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
+          state.durexes.push({
+            x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
+            y: collectibleY,
             collected: false,
           });
         }
@@ -225,6 +248,11 @@ export const Game = () => {
         weed.x -= PIPE_SPEED;
       });
 
+      // Update durexes
+      state.durexes.forEach((durex) => {
+        durex.x -= PIPE_SPEED;
+      });
+
       // Update floating texts
       const currentTime = Date.now();
       state.floatingTexts = state.floatingTexts.filter((text) => {
@@ -238,9 +266,10 @@ export const Game = () => {
         return false;
       });
 
-      // Remove off-screen pipes and weeds
+      // Remove off-screen pipes, weeds, and durexes
       state.pipes = state.pipes.filter((pipe) => pipe.x > -PIPE_WIDTH);
       state.weeds = state.weeds.filter((weed) => weed.x > -WEED_SIZE);
+      state.durexes = state.durexes.filter((durex) => durex.x > -WEED_SIZE);
 
       // Check collisions with improved hitbox (more forgiving)
       const hitboxMargin = 12; // More forgiving collision
@@ -304,6 +333,34 @@ export const Game = () => {
         }
       });
 
+      // Durex collection (negative)
+      state.durexes.forEach((durex) => {
+        if (!durex.collected) {
+          const durexLeft = durex.x;
+          const durexRight = durex.x + WEED_SIZE;
+          const durexTop = durex.y;
+          const durexBottom = durex.y + WEED_SIZE;
+
+          if (
+            playerRight > durexLeft &&
+            playerLeft < durexRight &&
+            playerBottom > durexTop &&
+            playerTop < durexBottom
+          ) {
+            durex.collected = true;
+            // Add floating text
+            state.floatingTexts.push({
+              x: PLAYER_X + PLAYER_SIZE + 10,
+              y: state.playerY + PLAYER_SIZE / 2,
+              text: "-67",
+              opacity: 1,
+              startTime: Date.now(),
+            });
+            setScore((prev) => Math.max(0, prev - 67)); // Don't go below 0
+          }
+        }
+      });
+
       // Clear canvas
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -360,13 +417,27 @@ export const Game = () => {
         }
       });
 
-      // Draw weeds
+      // Draw weeds with bounce animation
+      const bounceOffset = Math.sin(state.frameCount * 0.05) * 5;
       state.weeds.forEach((weed) => {
         if (!weed.collected && imagesRef.current.weed) {
           ctx.drawImage(
             imagesRef.current.weed,
             weed.x,
-            weed.y,
+            weed.y + bounceOffset,
+            WEED_SIZE,
+            WEED_SIZE
+          );
+        }
+      });
+
+      // Draw durexes with bounce animation
+      state.durexes.forEach((durex) => {
+        if (!durex.collected && imagesRef.current.durex) {
+          ctx.drawImage(
+            imagesRef.current.durex,
+            durex.x,
+            durex.y + bounceOffset,
             WEED_SIZE,
             WEED_SIZE
           );
@@ -393,7 +464,8 @@ export const Game = () => {
         ctx.save();
         ctx.globalAlpha = text.opacity;
         ctx.font = "bold 48px monospace";
-        ctx.fillStyle = "#84cc16";
+        const isPositive = text.text.startsWith("+");
+        ctx.fillStyle = isPositive ? "#84cc16" : "#ef4444";
         ctx.strokeStyle = "#000";
         ctx.lineWidth = 3;
         ctx.strokeText(text.text, text.x, text.y);
@@ -402,14 +474,14 @@ export const Game = () => {
       });
 
       // Draw scrolling text at bottom
-      const scrollSpeed = 2;
-      const scrollText = "YOLO 28.11.2026    ";
+      const scrollSpeed = 0.5; // Much slower
+      const scrollText = "YOLO 28.11.2026        "; // More spacing
+      ctx.font = "bold 32px monospace"; // Set font before measuring
       const textMetrics = ctx.measureText(scrollText);
       const textWidth = textMetrics.width;
       const scrollOffset = (state.frameCount * scrollSpeed) % textWidth;
       
       ctx.save();
-      ctx.font = "bold 32px monospace";
       ctx.fillStyle = "#ffffff";
       ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
       ctx.shadowBlur = 4;
@@ -417,12 +489,12 @@ export const Game = () => {
       ctx.shadowOffsetY = 2;
       
       // Create strobe effect
-      const strobeAlpha = 0.8 + Math.sin(state.frameCount * 0.1) * 0.2;
+      const strobeAlpha = 0.8 + Math.sin(state.frameCount * 0.05) * 0.2;
       ctx.globalAlpha = strobeAlpha;
       
       // Draw text multiple times to fill the width
-      const repeats = Math.ceil(CANVAS_WIDTH / textWidth) + 2;
-      for (let i = -1; i < repeats; i++) {
+      const repeats = Math.ceil(CANVAS_WIDTH / textWidth) + 1;
+      for (let i = 0; i < repeats; i++) {
         ctx.fillText(scrollText, i * textWidth - scrollOffset, CANVAS_HEIGHT - 30);
       }
       ctx.restore();
@@ -468,7 +540,7 @@ export const Game = () => {
       {/* Score Display at Top Right - Only during gameplay */}
       {gameStarted && !gameOver && (
         <div className="absolute top-8 right-8 z-10">
-          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{score}</p>
+          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{ fontFamily: 'monospace' }}>{score}</p>
         </div>
       )}
 
@@ -488,20 +560,20 @@ export const Game = () => {
           className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
           onClick={jump}
         >
-          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]">
+          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]" style={{ fontFamily: 'monospace' }}>
             YOLO BIRD
           </h1>
-          <p className="text-xl mb-4 text-white">TAP OR PRESS SPACE</p>
-          <p className="text-sm text-muted-foreground">TO START</p>
+          <p className="text-xl mb-4 text-white" style={{ fontFamily: 'monospace' }}>TAP OR PRESS SPACE</p>
+          <p className="text-sm text-muted-foreground" style={{ fontFamily: 'monospace' }}>TO START</p>
         </div>
       )}
 
       {/* Game Over Overlay */}
       {gameOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-          <h2 className="text-5xl font-bold mb-6 text-white">GAME OVER</h2>
-          <p className="text-2xl mb-2 text-white">SCORE: {score}</p>
-          <p className="text-xl text-accent mb-8">BEST: {bestScore}</p>
+          <h2 className="text-5xl font-bold mb-6 text-white" style={{ fontFamily: 'monospace' }}>GAME OVER</h2>
+          <p className="text-2xl mb-2 text-white" style={{ fontFamily: 'monospace' }}>SCORE: {score}</p>
+          <p className="text-xl text-accent mb-8" style={{ fontFamily: 'monospace' }}>BEST: {bestScore}</p>
           <Button 
             onClick={resetGame} 
             className="bg-accent text-black hover:bg-accent/90 text-lg px-8 py-6 font-bold"
