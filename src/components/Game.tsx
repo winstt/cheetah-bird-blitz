@@ -26,6 +26,7 @@ export const Game = () => {
     playerVelocity: 0,
     pipes: [] as Pipe[],
     frameCount: 0,
+    rotation: 0,
   });
 
   const imagesRef = useRef({
@@ -59,9 +60,10 @@ export const Game = () => {
         playerVelocity: 0,
         pipes: [],
         frameCount: 0,
+        rotation: 0,
       };
     } else if (!gameOver) {
-      gameStateRef.current.playerVelocity = -4; // Slower jump
+      gameStateRef.current.playerVelocity = -3; // Even slower jump
     }
   }, [gameStarted, gameOver]);
 
@@ -74,6 +76,7 @@ export const Game = () => {
       playerVelocity: 0,
       pipes: [],
       frameCount: 0,
+      rotation: 0,
     };
   };
 
@@ -84,13 +87,14 @@ export const Game = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const CANVAS_WIDTH = 400;
-    const CANVAS_HEIGHT = 600;
+    const CANVAS_WIDTH = window.innerWidth;
+    const CANVAS_HEIGHT = window.innerHeight;
     const PLAYER_SIZE = 50;
-    const PIPE_WIDTH = 70;
-    const PIPE_GAP = 180;
-    const GRAVITY = 0.25; // Slower, smoother gravity
-    const PIPE_SPEED = 1.5; // Slower pipe movement
+    const PIPE_WIDTH = 80;
+    const PIPE_GAP = 200;
+    const GRAVITY = 0.18; // Even slower, smoother gravity
+    const PIPE_SPEED = 1.2; // Even slower pipe movement
+    const PLAYER_X = CANVAS_WIDTH * 0.25; // Position on left quarter
 
     let animationFrameId: number;
 
@@ -107,8 +111,11 @@ export const Game = () => {
       state.playerVelocity += GRAVITY;
       state.playerY += state.playerVelocity;
 
-      // Add new pipes
-      if (state.frameCount % 120 === 0) {
+      // Update rotation based on velocity
+      state.rotation = Math.min(Math.max(state.playerVelocity * 5, -25), 90);
+
+      // Add new pipes (slower spawn rate)
+      if (state.frameCount % 150 === 0) {
         const topHeight = Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 200) + 100;
         state.pipes.push({
           x: CANVAS_WIDTH,
@@ -123,7 +130,7 @@ export const Game = () => {
         pipe.x -= PIPE_SPEED;
 
         // Check if player passed pipe
-        if (!pipe.passed && pipe.x + PIPE_WIDTH < CANVAS_WIDTH / 2 - PLAYER_SIZE / 2) {
+        if (!pipe.passed && pipe.x + PIPE_WIDTH < PLAYER_X) {
           pipe.passed = true;
           setScore((prev) => {
             const newScore = prev + 1;
@@ -139,32 +146,37 @@ export const Game = () => {
       // Remove off-screen pipes
       state.pipes = state.pipes.filter((pipe) => pipe.x > -PIPE_WIDTH);
 
-      // Check collisions
-      const playerX = CANVAS_WIDTH / 2 - PLAYER_SIZE / 2;
-      const playerTop = state.playerY;
-      const playerBottom = state.playerY + PLAYER_SIZE;
+      // Check collisions with improved hitbox (smaller, more forgiving)
+      const hitboxMargin = 8; // Reduce effective collision area
+      const playerLeft = PLAYER_X + hitboxMargin;
+      const playerRight = PLAYER_X + PLAYER_SIZE - hitboxMargin;
+      const playerTop = state.playerY + hitboxMargin;
+      const playerBottom = state.playerY + PLAYER_SIZE - hitboxMargin;
 
       // Ground and ceiling collision
       if (playerTop <= 0 || playerBottom >= CANVAS_HEIGHT) {
         setGameOver(true);
       }
 
-      // Pipe collision
+      // Pipe collision with improved hitbox
       state.pipes.forEach((pipe) => {
         if (
-          playerX + PLAYER_SIZE > pipe.x &&
-          playerX < pipe.x + PIPE_WIDTH &&
+          playerRight > pipe.x &&
+          playerLeft < pipe.x + PIPE_WIDTH &&
           (playerTop < pipe.topHeight || playerBottom > pipe.topHeight + pipe.gap)
         ) {
           setGameOver(true);
         }
       });
 
-      // Draw background
+      // Clear canvas
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // Draw background stretched to fill
       if (imagesRef.current.background) {
         ctx.drawImage(imagesRef.current.background, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       } else {
-        ctx.fillStyle = "#1a1a2e";
+        ctx.fillStyle = "#70c5ce";
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       }
 
@@ -195,15 +207,19 @@ export const Game = () => {
         }
       });
 
-      // Draw player
+      // Draw player with rotation
       if (imagesRef.current.player) {
+        ctx.save();
+        ctx.translate(PLAYER_X + PLAYER_SIZE / 2, state.playerY + PLAYER_SIZE / 2);
+        ctx.rotate((state.rotation * Math.PI) / 180);
         ctx.drawImage(
           imagesRef.current.player,
-          playerX,
-          state.playerY,
+          -PLAYER_SIZE / 2,
+          -PLAYER_SIZE / 2,
           PLAYER_SIZE,
           PLAYER_SIZE
         );
+        ctx.restore();
       }
 
       animationFrameId = requestAnimationFrame(gameLoop);
@@ -226,50 +242,55 @@ export const Game = () => {
   }, [gameStarted, gameOver, jump, bestScore]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
-      <div className="flex items-center gap-8 mb-2">
+    <div className="fixed inset-0 overflow-hidden bg-background">
+      {/* Score Display at Top */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-8 px-6 py-3 bg-black/30 rounded-lg border-2 border-accent/50">
         <div className="text-center">
           <p className="text-xs text-muted-foreground mb-1">SCORE</p>
-          <p className="text-2xl font-bold">{score}</p>
+          <p className="text-3xl font-bold text-white">{score}</p>
         </div>
+        <div className="h-8 w-px bg-accent/50" />
         <div className="text-center">
           <p className="text-xs text-accent mb-1">BEST</p>
-          <p className="text-2xl font-bold text-accent">{bestScore}</p>
+          <p className="text-3xl font-bold text-accent">{bestScore}</p>
         </div>
       </div>
 
-      <div className="relative">
-        <canvas
-          ref={canvasRef}
-          width={400}
-          height={600}
-          className="border-4 border-border rounded-lg shadow-2xl cursor-pointer"
-          onClick={jump}
-        />
+      {/* Fullscreen Canvas */}
+      <canvas
+        ref={canvasRef}
+        width={window.innerWidth}
+        height={window.innerHeight}
+        className="cursor-pointer"
+        onClick={jump}
+        style={{ imageRendering: 'pixelated' }}
+      />
 
-        {!gameStarted && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-lg">
-            <h1 className="text-4xl font-bold mb-8 text-accent">YOLO BIRD</h1>
-            <p className="text-sm mb-4">TAP OR PRESS SPACE</p>
-            <p className="text-xs text-muted-foreground">TO START</p>
-          </div>
-        )}
+      {/* Start Screen Overlay */}
+      {!gameStarted && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+          <h1 className="text-6xl font-bold mb-8 text-accent drop-shadow-[0_0_10px_rgba(132,204,22,0.5)]">
+            YOLO BIRD
+          </h1>
+          <p className="text-xl mb-4 text-white">TAP OR PRESS SPACE</p>
+          <p className="text-sm text-muted-foreground">TO START</p>
+        </div>
+      )}
 
-        {gameOver && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-lg">
-            <h2 className="text-3xl font-bold mb-4">GAME OVER</h2>
-            <p className="text-lg mb-2">SCORE: {score}</p>
-            <p className="text-sm text-accent mb-6">BEST: {bestScore}</p>
-            <Button onClick={resetGame} className="bg-accent text-accent-foreground hover:bg-accent/90">
-              RETRY
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <p className="text-xs text-muted-foreground mt-2">
-        CLICK OR PRESS SPACE TO FLAP
-      </p>
+      {/* Game Over Overlay */}
+      {gameOver && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+          <h2 className="text-5xl font-bold mb-6 text-white">GAME OVER</h2>
+          <p className="text-2xl mb-2 text-white">SCORE: {score}</p>
+          <p className="text-xl text-accent mb-8">BEST: {bestScore}</p>
+          <Button 
+            onClick={resetGame} 
+            className="bg-accent text-black hover:bg-accent/90 text-lg px-8 py-6 font-bold"
+          >
+            RETRY
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
