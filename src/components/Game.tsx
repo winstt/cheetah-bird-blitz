@@ -63,7 +63,7 @@ export const Game = () => {
         rotation: 0,
       };
     } else if (!gameOver) {
-      gameStateRef.current.playerVelocity = -3; // Even slower jump
+      gameStateRef.current.playerVelocity = -5; // Bigger jump
     }
   }, [gameStarted, gameOver]);
 
@@ -89,9 +89,9 @@ export const Game = () => {
 
     const CANVAS_WIDTH = window.innerWidth;
     const CANVAS_HEIGHT = window.innerHeight;
-    const PLAYER_SIZE = 50;
+    const PLAYER_SIZE = 70;
     const PIPE_WIDTH = 80;
-    const PIPE_GAP = 200;
+    const PIPE_GAP = 250;
     const GRAVITY = 0.18; // Even slower, smoother gravity
     const PIPE_SPEED = 1.2; // Even slower pipe movement
     const PLAYER_X = CANVAS_WIDTH * 0.25; // Position on left quarter
@@ -114,8 +114,8 @@ export const Game = () => {
       // Update rotation based on velocity
       state.rotation = Math.min(Math.max(state.playerVelocity * 5, -25), 90);
 
-      // Add new pipes (slower spawn rate)
-      if (state.frameCount % 150 === 0) {
+      // Add new pipes (more spacing between pipes)
+      if (state.frameCount % 200 === 0) {
         const topHeight = Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 200) + 100;
         state.pipes.push({
           x: CANVAS_WIDTH,
@@ -243,18 +243,12 @@ export const Game = () => {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
-      {/* Score Display at Top */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-8 px-6 py-3 bg-black/30 rounded-lg border-2 border-accent/50">
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground mb-1">SCORE</p>
-          <p className="text-3xl font-bold text-white">{score}</p>
+      {/* Score Display at Top Right - Only during gameplay */}
+      {gameStarted && !gameOver && (
+        <div className="absolute top-8 right-8 z-10">
+          <p className="text-6xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{score}</p>
         </div>
-        <div className="h-8 w-px bg-accent/50" />
-        <div className="text-center">
-          <p className="text-xs text-accent mb-1">BEST</p>
-          <p className="text-3xl font-bold text-accent">{bestScore}</p>
-        </div>
-      </div>
+      )}
 
       {/* Fullscreen Canvas */}
       <canvas
