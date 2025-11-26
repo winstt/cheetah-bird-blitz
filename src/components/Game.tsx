@@ -9,6 +9,8 @@ import audioOnImg from "@/assets/audio-on.png";
 import audioOffImg from "@/assets/audio-off.png";
 import weedCollectibleImg from "@/assets/weed-collectible.png";
 import durexCollectibleImg from "@/assets/durex-collectible.png";
+import winSound from "@/assets/win-sound.mp3";
+import errorSound from "@/assets/error-sound.mp3";
 
 interface Pipe {
   x: number;
@@ -51,6 +53,8 @@ export const Game = () => {
   const [durexCount, setDurexCount] = useState(0);
   const [hueShift, setHueShift] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const winSoundRef = useRef<HTMLAudioElement>(null);
+  const errorSoundRef = useRef<HTMLAudioElement>(null);
 
   const gameStateRef = useRef({
     playerY: 250,
@@ -112,6 +116,12 @@ export const Game = () => {
     if (audioRef.current) {
       audioRef.current.loop = true;
       audioRef.current.volume = 0.3;
+    }
+    if (winSoundRef.current) {
+      winSoundRef.current.volume = 0.5;
+    }
+    if (errorSoundRef.current) {
+      errorSoundRef.current.volume = 0.5;
     }
   }, []);
 
@@ -222,14 +232,22 @@ export const Game = () => {
         // Spawn weed or durex collectible at 60% rate
         const rand = Math.random();
         if (rand < 0.4) {
-          const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
+          // Position collectible closer to pipes (top or bottom of gap)
+          const nearPipe = Math.random() < 0.5;
+          const collectibleY = nearPipe 
+            ? topHeight + 20 // Near top pipe
+            : topHeight + PIPE_GAP - WEED_SIZE - 20; // Near bottom pipe
           state.weeds.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
             y: collectibleY,
             collected: false,
           });
         } else if (rand < 0.6) {
-          const collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
+          // Position collectible closer to pipes (top or bottom of gap)
+          const nearPipe = Math.random() < 0.5;
+          const collectibleY = nearPipe 
+            ? topHeight + 20 // Near top pipe
+            : topHeight + PIPE_GAP - WEED_SIZE - 20; // Near bottom pipe
           state.durexes.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
             y: collectibleY,
@@ -327,6 +345,11 @@ export const Game = () => {
           ) {
             weed.collected = true;
             setWeedCount(prev => prev + 1);
+            // Play win sound
+            if (winSoundRef.current) {
+              winSoundRef.current.currentTime = 0;
+              winSoundRef.current.play().catch(() => {});
+            }
             // Add floating text
             state.floatingTexts.push({
               x: PLAYER_X + PLAYER_SIZE + 10,
@@ -368,6 +391,11 @@ export const Game = () => {
           ) {
             durex.collected = true;
             setDurexCount(prev => prev + 1);
+            // Play error sound
+            if (errorSoundRef.current) {
+              errorSoundRef.current.currentTime = 0;
+              errorSoundRef.current.play().catch(() => {});
+            }
             // Add floating text
             state.floatingTexts.push({
               x: PLAYER_X + PLAYER_SIZE + 10,
@@ -541,6 +569,8 @@ export const Game = () => {
       style={hueShift ? {
         animation: 'hue-rotate 10s linear',
         filter: `hue-rotate(${Date.now() % 360}deg)`
+      } : score < 0 ? {
+        filter: 'invert(1)'
       } : {}}
     >
       <style>
@@ -551,8 +581,10 @@ export const Game = () => {
           }
         `}
       </style>
-      {/* Audio element */}
+      {/* Audio elements */}
       <audio ref={audioRef} src={gameMusic} />
+      <audio ref={winSoundRef} src={winSound} />
+      <audio ref={errorSoundRef} src={errorSound} />
       
       {/* Mute Button - Top Left with Pixelated Graphics */}
       <button
