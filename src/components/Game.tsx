@@ -158,7 +158,7 @@ export const Game = () => {
       rotation: 0,
     };
     } else if (!gameOver) {
-      gameStateRef.current.playerVelocity = -5; // Bigger jump
+      gameStateRef.current.playerVelocity = -10; // Bigger jump for faster gravity
     }
   }, [gameStarted, gameOver]);
 
@@ -191,8 +191,8 @@ export const Game = () => {
     const CANVAS_HEIGHT = window.innerHeight;
     const PLAYER_SIZE = 70;
     const PIPE_WIDTH = 120;
-    const GRAVITY = 0.225;
-    const PIPE_SPEED = 1.5;
+    const GRAVITY = 0.45;
+    const PIPE_SPEED = 7.5;
     const PLAYER_X = CANVAS_WIDTH * 0.25;
     const WEED_SIZE = 75;
 
@@ -210,7 +210,7 @@ export const Game = () => {
       // Progressive difficulty: start easier, get harder
       const difficultyFactor = Math.min(score / 20, 1); // Max difficulty at score 20
       const PIPE_GAP = 400 - difficultyFactor * 100; // Start at 400, minimum 300
-      const PIPE_SPAWN_RATE = 500 - difficultyFactor * 100; // Start at 500, minimum 400
+      const PIPE_SPAWN_RATE = 200 - difficultyFactor * 50; // Start at 200, minimum 150
 
       // Update player physics
       state.playerVelocity += GRAVITY;
