@@ -518,13 +518,13 @@ export const Game = () => {
         ctx.restore();
       });
 
-      // Draw scrolling text at bottom
+      // Draw scrolling text at bottom - First line
       const scrollSpeed = 2.0; // Twice as fast
-      const scrollText = "YOLO 28.11.2026 !!!!!!!!!!!!        "; // More spacing
+      const scrollText1 = "YOLO OUT NOW!!!!!!!!        "; // More spacing
       ctx.font = "bold 40px 'VT323', monospace"; // Set font before measuring
-      const textMetrics = ctx.measureText(scrollText);
-      const textWidth = textMetrics.width;
-      const scrollOffset = (state.frameCount * scrollSpeed) % textWidth;
+      const textMetrics1 = ctx.measureText(scrollText1);
+      const textWidth1 = textMetrics1.width;
+      const scrollOffset1 = (state.frameCount * scrollSpeed) % textWidth1;
       
       ctx.save();
       ctx.fillStyle = "#ffffff";
@@ -537,10 +537,33 @@ export const Game = () => {
       const strobeAlpha = 0.4 + Math.sin(state.frameCount * 0.2) * 0.6;
       ctx.globalAlpha = strobeAlpha;
       
-      // Draw text multiple times to fill the width
-      const repeats = Math.ceil(CANVAS_WIDTH / textWidth) + 1;
-      for (let i = 0; i < repeats; i++) {
-        ctx.fillText(scrollText, i * textWidth - scrollOffset, CANVAS_HEIGHT - 40);
+      // Draw first text multiple times to fill the width
+      const repeats1 = Math.ceil(CANVAS_WIDTH / textWidth1) + 1;
+      for (let i = 0; i < repeats1; i++) {
+        ctx.fillText(scrollText1, i * textWidth1 - scrollOffset1, CANVAS_HEIGHT - 80);
+      }
+      ctx.restore();
+
+      // Draw scrolling text at bottom - Second line
+      const scrollText2 = "YOLO 4 EVER        "; // More spacing
+      const textMetrics2 = ctx.measureText(scrollText2);
+      const textWidth2 = textMetrics2.width;
+      const scrollOffset2 = (state.frameCount * scrollSpeed * 1.5) % textWidth2; // Different speed
+      
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      
+      // Create drastic strobe effect
+      ctx.globalAlpha = strobeAlpha;
+      
+      // Draw second text multiple times to fill the width
+      const repeats2 = Math.ceil(CANVAS_WIDTH / textWidth2) + 1;
+      for (let i = 0; i < repeats2; i++) {
+        ctx.fillText(scrollText2, i * textWidth2 - scrollOffset2, CANVAS_HEIGHT - 40);
       }
       ctx.restore();
 
