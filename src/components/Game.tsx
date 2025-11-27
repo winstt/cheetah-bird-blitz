@@ -8,7 +8,7 @@ import gameMusic from "@/assets/game-music.mp3";
 import audioOnImg from "@/assets/audio-on.png";
 import audioOffImg from "@/assets/audio-off.png";
 import weedCollectibleImg from "@/assets/weed-collectible.png";
-import durexCollectibleImg from "@/assets/durex-collectible.png";
+import redflagCollectibleImg from "@/assets/redflag-collectible.png";
 import winSound from "@/assets/win-sound.mp3";
 import errorSound from "@/assets/error-sound.mp3";
 
@@ -25,7 +25,7 @@ interface Weed {
   collected: boolean;
 }
 
-interface Durex {
+interface Redflag {
   x: number;
   y: number;
   collected: boolean;
@@ -50,7 +50,7 @@ export const Game = () => {
   });
   const [isMuted, setIsMuted] = useState(false);
   const [weedCount, setWeedCount] = useState(0);
-  const [durexCount, setDurexCount] = useState(0);
+  const [redflagCount, setRedflagCount] = useState(0);
   const [hueShift, setHueShift] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const winSoundRef = useRef<HTMLAudioElement>(null);
@@ -61,7 +61,7 @@ export const Game = () => {
     playerVelocity: 0,
     pipes: [] as Pipe[],
     weeds: [] as Weed[],
-    durexes: [] as Durex[],
+    redflags: [] as Redflag[],
     floatingTexts: [] as FloatingText[],
     frameCount: 0,
     rotation: 0,
@@ -73,7 +73,7 @@ export const Game = () => {
     topPipe: null as HTMLImageElement | null,
     background: null as HTMLImageElement | null,
     weed: null as HTMLImageElement | null,
-    durex: null as HTMLImageElement | null,
+    redflag: null as HTMLImageElement | null,
     audioOn: null as HTMLImageElement | null,
     audioOff: null as HTMLImageElement | null,
   });
@@ -100,9 +100,9 @@ export const Game = () => {
     weedImage.src = weedCollectibleImg;
     imagesRef.current.weed = weedImage;
 
-    const durexImage = new Image();
-    durexImage.src = durexCollectibleImg;
-    imagesRef.current.durex = durexImage;
+    const redflagImage = new Image();
+    redflagImage.src = redflagCollectibleImg;
+    imagesRef.current.redflag = redflagImage;
 
     const audioOnImage = new Image();
     audioOnImage.src = audioOnImg;
@@ -146,13 +146,13 @@ export const Game = () => {
       setGameOver(false);
       setScore(0);
       setWeedCount(0);
-      setDurexCount(0);
+      setRedflagCount(0);
     gameStateRef.current = {
       playerY: 250,
       playerVelocity: 0,
       pipes: [],
       weeds: [],
-      durexes: [],
+      redflags: [],
       floatingTexts: [],
       frameCount: 0,
       rotation: 0,
@@ -167,13 +167,13 @@ export const Game = () => {
     setGameOver(false);
     setScore(0);
     setWeedCount(0);
-    setDurexCount(0);
+    setRedflagCount(0);
     gameStateRef.current = {
       playerY: 250,
       playerVelocity: 0,
       pipes: [],
       weeds: [],
-      durexes: [],
+      redflags: [],
       floatingTexts: [],
       frameCount: 0,
       rotation: 0,
@@ -191,8 +191,8 @@ export const Game = () => {
     const CANVAS_HEIGHT = window.innerHeight;
     const PLAYER_SIZE = 70;
     const PIPE_WIDTH = 120;
-    const GRAVITY = 0.09;
-    const PIPE_SPEED = 0.6;
+    const GRAVITY = 0.225;
+    const PIPE_SPEED = 1.5;
     const PLAYER_X = CANVAS_WIDTH * 0.25;
     const WEED_SIZE = 75;
 
@@ -248,7 +248,7 @@ export const Game = () => {
           const collectibleY = nearPipe 
             ? topHeight + 20 // Near top pipe
             : topHeight + PIPE_GAP - WEED_SIZE - 20; // Near bottom pipe
-          state.durexes.push({
+          state.redflags.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
             y: collectibleY,
             collected: false,
@@ -279,9 +279,9 @@ export const Game = () => {
         weed.x -= PIPE_SPEED;
       });
 
-      // Update durexes
-      state.durexes.forEach((durex) => {
-        durex.x -= PIPE_SPEED;
+      // Update redflags
+      state.redflags.forEach((redflag) => {
+        redflag.x -= PIPE_SPEED;
       });
 
       // Update floating texts
@@ -297,10 +297,10 @@ export const Game = () => {
         return false;
       });
 
-      // Remove off-screen pipes, weeds, and durexes
+      // Remove off-screen pipes, weeds, and redflags
       state.pipes = state.pipes.filter((pipe) => pipe.x > -PIPE_WIDTH);
       state.weeds = state.weeds.filter((weed) => weed.x > -WEED_SIZE);
-      state.durexes = state.durexes.filter((durex) => durex.x > -WEED_SIZE);
+      state.redflags = state.redflags.filter((redflag) => redflag.x > -WEED_SIZE);
 
       // Check collisions with improved hitbox (more forgiving)
       const hitboxMargin = 12; // More forgiving collision
@@ -354,7 +354,7 @@ export const Game = () => {
             state.floatingTexts.push({
               x: PLAYER_X + PLAYER_SIZE + 10,
               y: state.playerY + PLAYER_SIZE / 2,
-              text: "+67",
+              text: "+67€",
               opacity: 1,
               startTime: Date.now(),
             });
@@ -375,22 +375,22 @@ export const Game = () => {
         }
       });
 
-      // Durex collection (negative)
-      state.durexes.forEach((durex) => {
-        if (!durex.collected) {
-          const durexLeft = durex.x;
-          const durexRight = durex.x + WEED_SIZE;
-          const durexTop = durex.y;
-          const durexBottom = durex.y + WEED_SIZE;
+      // Redflag collection (negative)
+      state.redflags.forEach((redflag) => {
+        if (!redflag.collected) {
+          const redflagLeft = redflag.x;
+          const redflagRight = redflag.x + WEED_SIZE;
+          const redflagTop = redflag.y;
+          const redflagBottom = redflag.y + WEED_SIZE;
 
           if (
-            playerRight > durexLeft &&
-            playerLeft < durexRight &&
-            playerBottom > durexTop &&
-            playerTop < durexBottom
+            playerRight > redflagLeft &&
+            playerLeft < redflagRight &&
+            playerBottom > redflagTop &&
+            playerTop < redflagBottom
           ) {
-            durex.collected = true;
-            setDurexCount(prev => prev + 1);
+            redflag.collected = true;
+            setRedflagCount(prev => prev + 1);
             // Play error sound
             if (errorSoundRef.current) {
               errorSoundRef.current.currentTime = 0;
@@ -400,7 +400,7 @@ export const Game = () => {
             state.floatingTexts.push({
               x: PLAYER_X + PLAYER_SIZE + 10,
               y: state.playerY + PLAYER_SIZE / 2,
-              text: "-67",
+              text: "-67€",
               opacity: 1,
               startTime: Date.now(),
             });
@@ -476,13 +476,13 @@ export const Game = () => {
         }
       });
 
-      // Draw durexes with bounce animation
-      state.durexes.forEach((durex) => {
-        if (!durex.collected && imagesRef.current.durex) {
+      // Draw redflags with bounce animation
+      state.redflags.forEach((redflag) => {
+        if (!redflag.collected && imagesRef.current.redflag) {
           ctx.drawImage(
-            imagesRef.current.durex,
-            durex.x,
-            durex.y + bounceOffset,
+            imagesRef.current.redflag,
+            redflag.x,
+            redflag.y + bounceOffset,
             WEED_SIZE,
             WEED_SIZE
           );
@@ -616,13 +616,13 @@ export const Game = () => {
           </div>
           <div className="flex items-center gap-4">
             <img 
-              src={durexCollectibleImg} 
-              alt="Durex" 
+              src={redflagCollectibleImg} 
+              alt="Red Flag" 
               className="w-[60px] h-[60px]"
               style={{ imageRendering: 'pixelated' }}
             />
             <p className="text-[50px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>
-              {durexCount}
+              {redflagCount}
             </p>
           </div>
         </div>
@@ -631,7 +631,7 @@ export const Game = () => {
       {/* Score Display at Top Right - Only during gameplay */}
       {gameStarted && !gameOver && (
         <div className="absolute top-8 right-8 z-10">
-          <p className="text-[75px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>{score}</p>
+          <p className="text-[75px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>{score}€</p>
         </div>
       )}
 
@@ -663,8 +663,8 @@ export const Game = () => {
       {gameOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
           <h2 className="text-[62px] font-bold mb-6 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>GAME OVER</h2>
-          <p className="text-[30px] mb-2 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>SCORE: {score}</p>
-          <p className="text-[26px] text-accent mb-8" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>BEST: {bestScore}</p>
+          <p className="text-[30px] mb-2 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>SCORE: {score}€</p>
+          <p className="text-[26px] text-accent mb-8" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>BEST: {bestScore}€</p>
           <Button 
             onClick={resetGame} 
             className="bg-accent text-black hover:bg-accent/90 text-lg px-8 py-6 font-bold"
