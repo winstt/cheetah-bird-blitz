@@ -189,12 +189,14 @@ export const Game = () => {
 
     const CANVAS_WIDTH = window.innerWidth;
     const CANVAS_HEIGHT = window.innerHeight;
-    const PLAYER_SIZE = 70;
-    const PIPE_WIDTH = 120;
+    const isMobile = window.innerWidth <= 768;
+    const scale = isMobile ? 0.5 : 1;
+    const PLAYER_SIZE = 70 * scale;
+    const PIPE_WIDTH = 120 * scale;
     const GRAVITY = 0.7;
     const PIPE_SPEED = 12;
     const PLAYER_X = CANVAS_WIDTH * 0.25;
-    const WEED_SIZE = 75;
+    const WEED_SIZE = 75 * scale;
 
     let animationFrameId: number;
 
@@ -508,11 +510,11 @@ export const Game = () => {
       state.floatingTexts.forEach((text) => {
         ctx.save();
         ctx.globalAlpha = text.opacity;
-        ctx.font = "bold 60px 'VT323', monospace";
+        ctx.font = `bold ${60 * scale}px 'VT323', monospace`;
         const isPositive = text.text.startsWith("+");
         ctx.fillStyle = isPositive ? "#84cc16" : "#ef4444";
         ctx.strokeStyle = "#000";
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 4 * scale;
         ctx.strokeText(text.text, text.x, text.y);
         ctx.fillText(text.text, text.x, text.y);
         ctx.restore();
@@ -521,7 +523,7 @@ export const Game = () => {
       // Draw scrolling text at bottom - First line
       const scrollSpeed = 2.0; // Twice as fast
       const scrollText1 = "YOLO OUT NOW!!!!!!!!        "; // More spacing
-      ctx.font = "bold 40px 'VT323', monospace"; // Set font before measuring
+      ctx.font = `bold ${40 * scale}px 'VT323', monospace`; // Set font before measuring
       const textMetrics1 = ctx.measureText(scrollText1);
       const textWidth1 = textMetrics1.width;
       const scrollOffset1 = (state.frameCount * scrollSpeed) % textWidth1;
@@ -540,7 +542,7 @@ export const Game = () => {
       // Draw first text multiple times to fill the width
       const repeats1 = Math.ceil(CANVAS_WIDTH / textWidth1) + 1;
       for (let i = 0; i < repeats1; i++) {
-        ctx.fillText(scrollText1, i * textWidth1 - scrollOffset1, CANVAS_HEIGHT - 80);
+        ctx.fillText(scrollText1, i * textWidth1 - scrollOffset1, CANVAS_HEIGHT - (80 * scale));
       }
       ctx.restore();
 
@@ -563,7 +565,7 @@ export const Game = () => {
       // Draw second text multiple times to fill the width
       const repeats2 = Math.ceil(CANVAS_WIDTH / textWidth2) + 1;
       for (let i = 0; i < repeats2; i++) {
-        ctx.fillText(scrollText2, i * textWidth2 - scrollOffset2, CANVAS_HEIGHT - 40);
+        ctx.fillText(scrollText2, i * textWidth2 - scrollOffset2, CANVAS_HEIGHT - (40 * scale));
       }
       ctx.restore();
 
@@ -612,7 +614,7 @@ export const Game = () => {
       {/* Mute Button - Top Left with Pixelated Graphics */}
       <button
         onClick={toggleMute}
-        className="absolute top-8 left-8 z-10 w-[76px] h-[76px] flex items-center justify-center hover:scale-110 transition-transform"
+        className="absolute top-4 left-4 md:top-8 md:left-8 z-10 w-[38px] h-[38px] md:w-[76px] md:h-[76px] flex items-center justify-center hover:scale-110 transition-transform"
         style={{ imageRendering: 'pixelated' }}
       >
         <img 
@@ -625,26 +627,26 @@ export const Game = () => {
 
       {/* Collectible Counters - Top Left under audio button */}
       {gameStarted && !gameOver && (
-        <div className="absolute top-32 left-8 z-10 flex flex-col gap-4">
-          <div className="flex items-center gap-4">
+        <div className="absolute top-16 left-4 md:top-32 md:left-8 z-10 flex flex-col gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <img 
               src={weedCollectibleImg} 
               alt="Weed" 
-              className="w-[60px] h-[60px]"
+              className="w-[30px] h-[30px] md:w-[60px] md:h-[60px]"
               style={{ imageRendering: 'pixelated' }}
             />
-            <p className="text-[50px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>
+            <p className="text-[25px] md:text-[50px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>
               {weedCount}
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <img 
               src={redflagCollectibleImg} 
               alt="Red Flag" 
-              className="w-[60px] h-[60px]"
+              className="w-[30px] h-[30px] md:w-[60px] md:h-[60px]"
               style={{ imageRendering: 'pixelated' }}
             />
-            <p className="text-[50px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>
+            <p className="text-[25px] md:text-[50px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>
               {redflagCount}
             </p>
           </div>
@@ -653,8 +655,8 @@ export const Game = () => {
 
       {/* Score Display at Top Right - Only during gameplay */}
       {gameStarted && !gameOver && (
-        <div className="absolute top-8 right-8 z-10">
-          <p className="text-[75px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>{score}€</p>
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10">
+          <p className="text-[38px] md:text-[75px] font-bold text-white drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>{score}€</p>
         </div>
       )}
 
@@ -674,23 +676,23 @@ export const Game = () => {
           className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
           onClick={jump}
         >
-          <h1 className="text-[75px] font-bold mb-8 text-accent drop-shadow-[0_0_20px_rgba(132,204,22,0.7)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>
+          <h1 className="text-[38px] md:text-[75px] font-bold mb-4 md:mb-8 text-accent drop-shadow-[0_0_20px_rgba(132,204,22,0.7)]" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>
             YOLO BIRD
           </h1>
-          <p className="text-[26px] mb-4 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>TAP OR PRESS SPACE</p>
-          <p className="text-[16px] text-muted-foreground" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>TO START</p>
+          <p className="text-[13px] md:text-[26px] mb-2 md:mb-4 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>TAP OR PRESS SPACE</p>
+          <p className="text-[8px] md:text-[16px] text-muted-foreground" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>TO START</p>
         </div>
       )}
 
       {/* Game Over Overlay */}
       {gameOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-          <h2 className="text-[62px] font-bold mb-6 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>GAME OVER</h2>
-          <p className="text-[30px] mb-2 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>SCORE: {score}€</p>
-          <p className="text-[26px] text-accent mb-8" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>BEST: {bestScore}€</p>
+          <h2 className="text-[31px] md:text-[62px] font-bold mb-3 md:mb-6 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>GAME OVER</h2>
+          <p className="text-[15px] md:text-[30px] mb-1 md:mb-2 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>SCORE: {score}€</p>
+          <p className="text-[13px] md:text-[26px] text-accent mb-4 md:mb-8" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>BEST: {bestScore}€</p>
           <Button 
             onClick={resetGame} 
-            className="bg-accent text-black hover:bg-accent/90 text-lg px-8 py-6 font-bold"
+            className="bg-accent text-black hover:bg-accent/90 text-sm md:text-lg px-4 py-3 md:px-8 md:py-6 font-bold"
             style={{ fontFamily: "'VT323', monospace" }}
           >
             RETRY
