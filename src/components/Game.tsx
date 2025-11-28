@@ -194,7 +194,7 @@ export const Game = () => {
     const CANVAS_WIDTH = window.innerWidth;
     const CANVAS_HEIGHT = window.innerHeight;
     const isMobile = window.innerWidth <= 768;
-    const scale = isMobile ? 0.5 : 1;
+    const scale = isMobile ? 1.2 : 1;
     const PLAYER_SIZE = 70 * scale;
     const PIPE_WIDTH = 120 * scale;
     const GRAVITY = 0.7;
