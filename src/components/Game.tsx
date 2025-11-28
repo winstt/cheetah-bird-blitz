@@ -154,7 +154,7 @@ export const Game = () => {
       weeds: [],
       redflags: [],
       floatingTexts: [],
-      frameCount: 0,
+      frameCount: 150, // Start closer to first pipe spawn
       rotation: 0,
     };
     } else if (!gameOver) {
@@ -175,7 +175,7 @@ export const Game = () => {
       weeds: [],
       redflags: [],
       floatingTexts: [],
-      frameCount: 0,
+      frameCount: 150, // Start closer to first pipe spawn
       rotation: 0,
     };
   };
