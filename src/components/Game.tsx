@@ -194,7 +194,7 @@ export const Game = () => {
     const CANVAS_WIDTH = window.innerWidth;
     const CANVAS_HEIGHT = window.innerHeight;
     const isMobile = window.innerWidth <= 768;
-    const scale = isMobile ? 0.7 : 1;
+    const scale = isMobile ? 0.4 : 1;
     const PLAYER_SIZE = 70 * scale;
     const PIPE_WIDTH = 120 * scale;
     const GRAVITY = 0.7;
@@ -235,25 +235,41 @@ export const Game = () => {
           passed: false,
         });
 
-        // Spawn weed or durex collectible at 60% rate
+        // Spawn weed or redflag collectible at 60% rate
         const rand = Math.random();
         if (rand < 0.4) {
-          // Position collectible closer to pipes (top or bottom of gap)
-          const nearPipe = Math.random() < 0.5;
-          const collectibleY = nearPipe 
-            ? topHeight + 20 // Near top pipe
-            : topHeight + PIPE_GAP - WEED_SIZE - 20; // Near bottom pipe
+          // 40% chance: spawn in middle, 60% chance: spawn at top or bottom
+          const positionRand = Math.random();
+          let collectibleY;
+          if (positionRand < 0.4) {
+            // Middle of gap
+            collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
+          } else {
+            // Top or bottom of gap
+            const nearTop = Math.random() < 0.5;
+            collectibleY = nearTop 
+              ? topHeight + 20 
+              : topHeight + PIPE_GAP - WEED_SIZE - 20;
+          }
           state.weeds.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
             y: collectibleY,
             collected: false,
           });
         } else if (rand < 0.6) {
-          // Position collectible closer to pipes (top or bottom of gap)
-          const nearPipe = Math.random() < 0.5;
-          const collectibleY = nearPipe 
-            ? topHeight + 20 // Near top pipe
-            : topHeight + PIPE_GAP - WEED_SIZE - 20; // Near bottom pipe
+          // 40% chance: spawn in middle, 60% chance: spawn at top or bottom
+          const positionRand = Math.random();
+          let collectibleY;
+          if (positionRand < 0.4) {
+            // Middle of gap
+            collectibleY = topHeight + PIPE_GAP / 2 - WEED_SIZE / 2;
+          } else {
+            // Top or bottom of gap
+            const nearTop = Math.random() < 0.5;
+            collectibleY = nearTop 
+              ? topHeight + 20 
+              : topHeight + PIPE_GAP - WEED_SIZE - 20;
+          }
           state.redflags.push({
             x: CANVAS_WIDTH + PIPE_WIDTH / 2 - WEED_SIZE / 2,
             y: collectibleY,
