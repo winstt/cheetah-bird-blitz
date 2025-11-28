@@ -152,7 +152,7 @@ export const Game = () => {
       setWeedCount(0);
       setRedflagCount(0);
     gameStateRef.current = {
-      playerY: 250,
+      playerY: window.innerHeight / 2 - 35, // Center vertically
       playerVelocity: 0,
       pipes: [],
       weeds: [],
@@ -173,7 +173,7 @@ export const Game = () => {
     setWeedCount(0);
     setRedflagCount(0);
     gameStateRef.current = {
-      playerY: 250,
+      playerY: window.innerHeight / 2 - 35, // Center vertically
       playerVelocity: 0,
       pipes: [],
       weeds: [],
@@ -194,7 +194,7 @@ export const Game = () => {
     const CANVAS_WIDTH = window.innerWidth;
     const CANVAS_HEIGHT = window.innerHeight;
     const isMobile = window.innerWidth <= 768;
-    const scale = isMobile ? 1.2 : 1;
+    const scale = isMobile ? 0.7 : 1;
     const PLAYER_SIZE = 70 * scale;
     const PIPE_WIDTH = 120 * scale;
     const GRAVITY = 0.7;
