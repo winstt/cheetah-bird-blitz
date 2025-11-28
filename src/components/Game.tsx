@@ -158,7 +158,7 @@ export const Game = () => {
       rotation: 0,
     };
     } else if (!gameOver) {
-      gameStateRef.current.playerVelocity = -10; // Bigger jump for faster gravity
+      gameStateRef.current.playerVelocity = -12; // Bigger jump for faster gravity
     }
   }, [gameStarted, gameOver]);
 
@@ -191,8 +191,8 @@ export const Game = () => {
     const CANVAS_HEIGHT = window.innerHeight;
     const PLAYER_SIZE = 70;
     const PIPE_WIDTH = 120;
-    const GRAVITY = 0.45;
-    const PIPE_SPEED = 7.5;
+    const GRAVITY = 0.7;
+    const PIPE_SPEED = 12;
     const PLAYER_X = CANVAS_WIDTH * 0.25;
     const WEED_SIZE = 75;
 
