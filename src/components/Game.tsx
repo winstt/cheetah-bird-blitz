@@ -48,6 +48,10 @@ export const Game = () => {
     const saved = localStorage.getItem("bestScore");
     return saved ? parseInt(saved) : 0;
   });
+  const [worstScore, setWorstScore] = useState(() => {
+    const saved = localStorage.getItem("worstScore");
+    return saved ? parseInt(saved) : 0;
+  });
   const [isMuted, setIsMuted] = useState(false);
   const [weedCount, setWeedCount] = useState(0);
   const [redflagCount, setRedflagCount] = useState(0);
@@ -366,6 +370,10 @@ export const Game = () => {
                 setBestScore(newScore);
                 localStorage.setItem("bestScore", newScore.toString());
               }
+              if (newScore < worstScore) {
+                setWorstScore(newScore);
+                localStorage.setItem("worstScore", newScore.toString());
+              }
               // Trigger hue shift at 300 points
               if (newScore >= 300 && prev < 300) {
                 setHueShift(true);
@@ -406,7 +414,14 @@ export const Game = () => {
               opacity: 1,
               startTime: Date.now(),
             });
-            setScore((prev) => prev - 67); // Allow negative scores
+            setScore((prev) => {
+              const newScore = prev - 67;
+              if (newScore < worstScore) {
+                setWorstScore(newScore);
+                localStorage.setItem("worstScore", newScore.toString());
+              }
+              return newScore;
+            });
           }
         }
       });
@@ -689,7 +704,8 @@ export const Game = () => {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
           <h2 className="text-[31px] md:text-[62px] font-bold mb-3 md:mb-6 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>GAME OVER</h2>
           <p className="text-[15px] md:text-[30px] mb-1 md:mb-2 text-white" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>SCORE: {score}€</p>
-          <p className="text-[13px] md:text-[26px] text-accent mb-4 md:mb-8" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>BEST: {bestScore}€</p>
+          <p className="text-[13px] md:text-[26px] text-accent mb-1 md:mb-2" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>BEST: {bestScore}€</p>
+          <p className="text-[13px] md:text-[26px] text-red-500 mb-4 md:mb-8" style={{ fontFamily: "'VT323', monospace", imageRendering: 'pixelated' }}>WORST: {worstScore}€</p>
           <Button 
             onClick={resetGame} 
             className="bg-accent text-black hover:bg-accent/90 text-sm md:text-lg px-4 py-3 md:px-8 md:py-6 font-bold"
